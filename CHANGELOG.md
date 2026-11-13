@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- `exhale complexity --require-base` makes the comparison base mandatory. A run that can't resolve one exits 2 with the reason instead of passing on warnings: no git repository, no commit at HEAD, a base that names no commit, no default branch, a base with no common ancestor with HEAD, or a base whose merge base is HEAD. A base that resolves to HEAD falls back to HEAD's first parent when HEAD is a merge commit, the state a push to the default branch leaves behind. Without the flag the run keeps its old behaviour.
+
 ## 0.2.0
 
 - `exhale complexity` is the second check. It scores every Ruby method and Rails DSL body with Cognitive Complexity at the head and at the merge base, and fails a pull request that raises a unit past the floor (8 by default) or adds one over it. Renamed and moved methods keep their history by identity, then by shape. `complexity.md` in a primitive sets its floor and keeps units up to a ceiling's max. `exhale complexity explain UNIT` prints every point. JSON lists every unit; EDN writes crapper's entries.

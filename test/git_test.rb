@@ -71,6 +71,45 @@ class GitTest < Minitest::Test
     assert_nil @git.merge_base(nil)
   end
 
+  def test_commit_sha_names_the_commit_a_ref_points_at
+    write("a.rb", "x = 1\n")
+    base = commit("base")
+
+    assert_equal base, @git.commit_sha("main")
+    assert_equal base, @git.commit_sha("HEAD")
+    assert_equal base, @git.commit_sha("HEAD^{commit}")
+  end
+
+  def test_commit_sha_is_nil_for_a_ref_that_names_no_commit
+    write("a.rb", "x = 1\n")
+    commit("base")
+
+    assert_nil @git.commit_sha("nope")
+    assert_nil @git.commit_sha(nil)
+    assert_nil @git.commit_sha("")
+  end
+
+  def test_parents_of_lists_a_commits_parents_in_order
+    write("a.rb", "x = 1\n")
+    base = commit("base")
+    sh("checkout", "-q", "-b", "feature")
+    write("b.rb", "y = 1\n")
+    commit("feature")
+    sh("checkout", "-q", "main")
+    sh("merge", "-q", "--no-ff", "feature", "-m", "merge feature")
+    merge = sh("rev-parse", "HEAD")
+
+    assert_equal [], @git.parents_of(base)
+    assert_equal [base], @git.parents_of(sh("rev-parse", "feature"))
+    assert_equal [base, sh("rev-parse", "feature")], @git.parents_of(merge)
+  end
+
+  def test_parents_of_is_empty_for_a_sha_that_names_no_commit
+    assert_equal [], @git.parents_of("nope")
+    assert_equal [], @git.parents_of(nil)
+    assert_equal [], @git.parents_of("")
+  end
+
   def test_default_branch_ref_fallbacks
     assert_nil @git.default_branch_ref
     write("a.rb", "x = 1\n")
