@@ -27,7 +27,7 @@ module Exhale
       @out = out
       @err = err
       @options = { root: Dir.pwd, format: "text", include_tests: false, contract_dir: "contract",
-                   overrides: {}, introduced_only: false, base: nil, cache_dir: nil }
+                   overrides: {}, introduced_only: false, base: nil, cache_dir: nil, require_base: false }
     end
 
     def run
@@ -63,7 +63,7 @@ module Exhale
     def complexity(paths)
       Complexity::Check.new(root: @options[:root], base: @options[:base], floor: @options[:floor],
                             include_tests: @options[:include_tests], contract_dir: @options[:contract_dir],
-                            paths: paths).run
+                            paths: paths, require_base: @options[:require_base]).run
     end
 
     def parser
@@ -82,6 +82,9 @@ module Exhale
         raise OptionParser::InvalidArgument, "--floor #{v}" if v.negative?
 
         @options[:floor] = v
+      end
+      o.on("--require-base", "Require a comparison base; exit 2 when none can be resolved") do
+        @options[:require_base] = true
       end
     end
 
@@ -154,7 +157,8 @@ module Exhale
 
     # Prints one unit's score and every point that earned it.
     def complexity_explain(identity)
-      Complexity::Check.new(root: @options[:root], base: @options[:base]).validate!
+      Complexity::Check.new(root: @options[:root], base: @options[:base],
+                            require_base: @options[:require_base]).validate!
       root = File.expand_path(@options[:root])
       git = Git.new(root)
       units, _errors = Units.read(root, files: (git.files if git.repo?), include_tests: @options[:include_tests])

@@ -54,6 +54,24 @@ module Exhale
       status.success? && !out.strip.empty? ? out.strip : nil
     end
 
+    # The SHA a ref names, or nil when it names no commit. A ref that
+    # names a tree or a blob isn't a commit, so it has no SHA here.
+    def commit_sha(ref)
+      out, _err, status = run("rev-parse", "--verify", "--quiet", "#{ref}^{commit}")
+      status.success? ? out.strip : nil
+    end
+
+    # The parents of a commit, in the order git lists them: the first
+    # parent is the branch the commit was made on, the rest are the
+    # branches it was merged from. An empty list is a root commit, and a
+    # sha that names no commit has none.
+    def parents_of(sha)
+      return [] if sha.nil? || sha.empty?
+
+      out, _err, _status = run("rev-list", "--parents", "-n", "1", sha)
+      out.strip.split(" ")[1..] || []
+    end
+
     # Where root sits inside the repository, like "agora/" for an app in a
     # monorepo. Every path exhale reports is relative to root, so exports and
     # diffs are scoped to it too.

@@ -7,6 +7,7 @@ require_relative "../source_files"
 require_relative "../units"
 require_relative "../contract"
 require_relative "../dry/check"
+require_relative "base"
 require_relative "cognitive"
 require_relative "ratchet"
 
@@ -24,13 +25,15 @@ module Exhale
     # The complexity check: scores every Ruby unit at the head and at the
     # merge base, and hands both to the Ratchet.
     class Check
-      def initialize(root:, base: nil, floor: nil, include_tests: false, contract_dir: "contract", paths: [])
+      def initialize(root:, base: nil, floor: nil, include_tests: false, contract_dir: "contract", paths: [],
+                     require_base: false)
         @root = File.expand_path(root)
         @base_ref = base
         @floor = floor
         @include_tests = include_tests
         @contract_dir = contract_dir
         @paths = paths
+        @require_base = require_base
         @git = Git.new(@root)
         @notes = []
       end
@@ -57,8 +60,12 @@ module Exhale
       end
 
       # The SHA of the merge base, or nil when there's none to compare with.
-      # A --base git can't find is an error, the same as for dry.
+      # A --base git can't find is an error, the same as for dry. With
+      # require_base, a base that can't be resolved at all is an error
+      # too: a strict run never falls back to comparing nothing.
       def validate!
+        return Base.new(git: @git, ref: @base_ref).resolve if @require_base
+
         Dry::Check.new(root: @root, base: @base_ref).validate!
       end
 

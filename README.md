@@ -167,6 +167,20 @@ With no git repository or no merge base there's nothing to compare, so the run e
       run: bin/exhale complexity --base origin/${{ github.base_ref || 'main' }} | tee -a "$GITHUB_STEP_SUMMARY"
 ```
 
+### Requiring a comparison base
+
+`--require-base` makes the comparison base mandatory. A run that can't resolve one exits 2 with the reason instead of passing on warnings, so a misconfigured base can't read as a clean pull request:
+
+```yaml
+    - name: exhale complexity
+      shell: bash
+      run: bin/exhale complexity --require-base --base origin/${{ github.base_ref || 'main' }}
+```
+
+The base is the merge base of the ref and HEAD, the state the branch started from. A base that moved on since the branch was pushed is still fine: its merge base with HEAD is the branch point. A base that resolves to HEAD is a push to the default branch, where the checkout is the merge commit GitHub built; the base is then the merge commit's first parent, the state before the merge.
+
+The run exits 2 when there's no git repository, no commit at HEAD, a base that names no commit, no default branch to fall back on, a base with no common ancestor with HEAD, or a base whose merge base is HEAD itself. `exhale complexity explain UNIT --require-base` resolves the base the same way, so a flag that would fail CI fails there too.
+
 ## Determinism
 
 The same commit gets the same verdict on any machine on any day. The verdict reads the commit's tree, its Contract, and the gem versions in its `Gemfile.lock`, and nothing else. Digests are unseeded, weights are fixed-point integers computed without the platform's floating-point log, and every tie breaks on a stable key.
